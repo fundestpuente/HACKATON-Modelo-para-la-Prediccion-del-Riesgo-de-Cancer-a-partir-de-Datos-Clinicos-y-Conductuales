@@ -2,18 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-from PIL import Image
 
-# Configuramos la página
-st.set_page_config(
-    page_title="Sistema de Diagnóstico IA",
-    page_icon="resources/icon.png",
-    layout="centered"
-)
+st.set_page_config(page_title="Sistema de Diagnóstico IA", layout="centered")
 
-# Cargamos los pkl
 @st.cache_resource
-def cargar_archivos():
+def cargar_archivos_generales():
     try:
         modelo = joblib.load('modelo_cancer_final.pkl')
         scaler = joblib.load('scaler_final.pkl')
@@ -22,107 +15,127 @@ def cargar_archivos():
     except FileNotFoundError:
         return None, None, None
 
-modelo, scaler, columnas_finales = cargar_archivos()
+@st.cache_resource
+def cargar_especialistas():
+    modelos = {}
+    columnas = {}
+    nombres = ["pulmon", "mama", "prostata", "gastrico", "cervical"]
+    
+    for n in nombres:
+        try:
+            modelos[n] = joblib.load(f'modelo_{n}_final.pkl')
+            columnas[n] = joblib.load(f'columnas_{n}.pkl')
+        except:
+            pass
+    return modelos, columnas
 
-st.title("Predicción de Cáncer con IA")
-st.markdown("""
-Esta aplicación utiliza un modelo de **Machine Learning (Random Forest)** optimizado para detectar patrones de riesgo oncológico.
-Por favor, ingrese los datos clínicos del paciente a continuación:
-""")
+modelo_gen, scaler_gen, cols_gen = cargar_archivos_generales()
+modelos_esp, cols_esp = cargar_especialistas()
 
-if modelo is None:
-    st.error(" Error: No se encuentran los archivos .pkl. Por favor, asegúrate de haber ejecutado el script de entrenamiento primero.")
+if 'mostrar_detalle' not in st.session_state:
+    st.session_state.mostrar_detalle = False
+
+if 'diag_general_hecho' not in st.session_state:
+    st.session_state.diag_general_hecho = False
+
+st.title("Predicción de Cáncer con Inteligancia Artificial")
+
+if modelo_gen is None:
+    st.error("Error: Faltan archivos del modelo general.")
     st.stop()
 
-# Side bar
 st.sidebar.header("Datos del Paciente")
 
-# Variables base
 gender = st.sidebar.selectbox("Género", options=[0, 1], format_func=lambda x: "Masculino" if x == 0 else "Femenino")
 age = st.sidebar.slider("Edad", 20, 90, 45)
-bmi = st.sidebar.slider("Índice de Masa Corporal (BMI)", 15.0, 40.0, 24.0)
-smoking = st.sidebar.selectbox("¿Hábito de fumar?", options=[0, 1], format_func=lambda x: "No" if x == 0 else "Sí")
+bmi = st.sidebar.slider("BMI", 15.0, 40.0, 24.0)
+smoking = st.sidebar.selectbox("Fuma", options=[0, 1], format_func=lambda x: "No" if x == 0 else "Sí")
 genetic = st.sidebar.selectbox("Riesgo Genético", options=[0, 1, 2], format_func=lambda x: ["Bajo", "Medio", "Alto"][x])
-activity = st.sidebar.slider("Actividad Física (Horas/Semana)", 0.0, 20.0, 5.0)
-alcohol = st.sidebar.slider("Consumo Alcohol (Unidades/Semana)", 0.0, 20.0, 2.0)
-cancer_history = st.sidebar.selectbox("Historial de Cáncer Previo", options=[0, 1], format_func=lambda x: "No" if x == 0 else "Sí")
+activity = st.sidebar.slider("Actividad Física", 0.0, 20.0, 5.0)
+alcohol = st.sidebar.slider("Alcohol", 0.0, 20.0, 2.0)
+cancer_history = st.sidebar.selectbox("Historial Cáncer", options=[0, 1], format_func=lambda x: "No" if x == 0 else "Sí")
 
+if st.button("Diagnóstico General", type="primary"):
+    st.session_state.diag_general_hecho = True
+    st.session_state.mostrar_detalle = False
 
-if st.button("Realizar Diagnóstico", type="primary"):
-    
-    # Dataframe con los datos
+if st.session_state.diag_general_hecho:
     input_dict = {
-        'Gender': [gender],
-        'Age': [age],
-        'BMI': [bmi],
-        'Smoking': [smoking],
-        'GeneticRisk': [genetic],
-        'PhysicalActivity': [activity],
-        'AlcoholIntake': [alcohol],
-        'CancerHistory': [cancer_history]
+        'Gender': [gender], 'Age': [age], 'BMI': [bmi], 'Smoking': [smoking],
+        'GeneticRisk': [genetic], 'PhysicalActivity': [activity],
+        'AlcoholIntake': [alcohol], 'CancerHistory': [cancer_history]
     }
-    df_input = pd.DataFrame(input_dict)
 
-    df_input["Age_Smoking"] = df_input["Age"] * df_input["Smoking"]
-    df_input["BMI_Activity"] = df_input["BMI"] * df_input["PhysicalActivity"]
-    df_input["Genetic_Smoking"] = df_input["GeneticRisk"] * df_input["Smoking"]
-    df_input["Alcohol_Smoking"] = df_input["AlcoholIntake"] * df_input["Smoking"]
+    df = pd.DataFrame(input_dict)
     
-    df_input["Obese"] = (df_input["BMI"] >= 30).astype(int)
-    df_input["LowActivity"] = (df_input["PhysicalActivity"] < 2).astype(int)
-    df_input["HeavyDrinker"] = (df_input["AlcoholIntake"] > 3).astype(int)
-    
-    df_input["Log_Alcohol"] = np.log1p(df_input["AlcoholIntake"])
-    df_input["Log_Activity"] = np.log1p(df_input["PhysicalActivity"])
-    
-    df_input["Age_squared"] = df_input["Age"] ** 2
-    df_input["BMI_squared"] = df_input["BMI"] ** 2
-    df_input["BMI_per_Age"] = df_input["BMI"] / df_input["Age"]
-
+    df["Age_Smoking"] = df["Age"] * df["Smoking"]
+    df["BMI_Activity"] = df["BMI"] * df["PhysicalActivity"]
+    df["Genetic_Smoking"] = df["GeneticRisk"] * df["Smoking"]
+    df["Alcohol_Smoking"] = df["AlcoholIntake"] * df["Smoking"]
+    df["Obese"] = (df["BMI"] >= 30).astype(int)
+    df["LowActivity"] = (df["PhysicalActivity"] < 2).astype(int)
+    df["HeavyDrinker"] = (df["AlcoholIntake"] > 3).astype(int)
+    df["Log_Alcohol"] = np.log1p(df["AlcoholIntake"])
+    df["Log_Activity"] = np.log1p(df["PhysicalActivity"])
+    df["Age_squared"] = df["Age"] ** 2
+    df["BMI_squared"] = df["BMI"] ** 2
+    df["BMI_per_Age"] = df["BMI"] / df["Age"]
 
     try:
-        cols_scaler = scaler.feature_names_in_
-        df_para_escalar = df_input[cols_scaler]
+        X_scaled = scaler_gen.transform(df[scaler_gen.feature_names_in_])
+        df_scaled = pd.DataFrame(X_scaled, columns=scaler_gen.feature_names_in_)
+        pred = modelo_gen.predict(df_scaled[cols_gen])[0]
+        prob = modelo_gen.predict_proba(df_scaled[cols_gen])[0][1]
         
-        X_scaled_array = scaler.transform(df_para_escalar)
+        st.divider()
+        c1, c2 = st.columns([1, 2])
         
-        df_scaled_completo = pd.DataFrame(X_scaled_array, columns=cols_scaler)
-        
-        X_final_model = df_scaled_completo[columnas_finales]
-        
-        prediccion = modelo.predict(X_final_model.values)[0]
-        probabilidad = modelo.predict_proba(X_final_model.values)[0][1]
+        if pred == 1:
+            c1.error("POSITIVO")
+            c2.error("Riesgo Alto Detectado")
+            c2.write(f"Probabilidad: {prob:.2%}")
+            st.markdown("---")
+            if st.button("Análisis Diferencial"):
+                st.session_state.mostrar_detalle = True
+        else:
+            c1.success("NEGATIVO")
+            c2.success("Riesgo Bajo")
+            c2.write(f"Probabilidad: {prob:.2%}")
 
     except Exception as e:
-        st.error(f"Error en el procesamiento de datos: {e}")
-        st.stop()
+        st.error(f"Error: {e}")
 
-    st.divider()
-    col_res1, col_res2 = st.columns([1, 2])
+if st.session_state.mostrar_detalle:
+    st.markdown("---")
+    st.header("Análisis Diferencial")
     
-    with col_res1:
-        if prediccion == 1:
-            try:
-                st.image("resources/danger.png", width=100)
-            except:
-                st.warning("⚠️") # En caso de que no cargue la imagen
-        else:
-            try:
-                st.image("resources/check.png", width=100)
-            except:
-                st.success("✅") # En caso de que no cargue la imagen
+    tabs_names = ["Pulmón", "Estómago"]
+    if gender == 1:
+        tabs_names.extend(["Mama", "Cervical"])
+    else:
+        tabs_names.append("Próstata")
+        
+    tabs = st.tabs(tabs_names)
+    
+    # 1. PESTAÑA PULMÓN
+    with tabs[0]:
+        #TENGO QUE LLENAR CON LOS DATOS
 
-    with col_res2:
-        st.subheader("Resultado del Análisis:")
-        if prediccion == 1:
-            st.error(f" POSITIVO (Riesgo Alto) ")
-            st.write(f"Probabilidad estimada: **{probabilidad:.2%}**")
-            st.warning("Se sugiere revisión clínica detallada.")
-        else:
-            st.success(f" NEGATIVO (Riesgo Bajo) ")
-            st.write(f"Probabilidad estimada: **{probabilidad:.2%}**")
-            st.info("Mantener hábitos saludables.")
+    # 2. PESTAÑA ESTÓMAGO 
+    with tabs[1]:
+        #TENGO QUE LLENAR CON LOS DATOS
 
-    # Detalle técnico para más info
-    with st.expander("Ver variables internas usadas por el modelo"):
-        st.dataframe(X_final_model)
+    # Si es mujer u hombre
+    if gender == 1:
+        # 3. PESTAÑA MAMA
+        #TENGO QUE LLENAR CON LOS DATOS
+
+        # 4. PESTAÑA CERVICAL
+        with tabs[3]:
+            st.write("TENGO QUE LLENAR CON LOS DATOS")
+
+    else:
+        # 3. PESTAÑA PRÓSTATA
+        with tabs[2]:
+            st.write("
+            st.write("TENGO QUE LLENAR CON LOS DATOS")
