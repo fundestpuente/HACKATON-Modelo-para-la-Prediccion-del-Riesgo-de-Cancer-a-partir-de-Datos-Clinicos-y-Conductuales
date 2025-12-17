@@ -14,9 +14,6 @@ st.set_page_config(
     page_icon="resources/icon.png"
 )
 
-# =========================
-# ESTILOS
-# =========================
 st.markdown("""
 <style>
 .result-box {
@@ -50,13 +47,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
-# =========================
-# Configurar modelo de gemini
-# =========================
 load_dotenv()
 api_key = os.getenv("API_KEY")
-
 
 @st.cache_resource
 def get_genai_client(key):
@@ -149,9 +141,6 @@ configAgent = types.GenerateContentConfig(
 )
 
 
-# =========================
-# UTILIDADES
-# =========================
 def obtener_imagen_base64(ruta_imagen: str) -> str:
     try:
         with open(ruta_imagen, "rb") as f:
@@ -160,9 +149,8 @@ def obtener_imagen_base64(ruta_imagen: str) -> str:
     except FileNotFoundError:
         return ""
 
-# =========================
+
 # CARGA DE MODELOS
-# =========================
 @st.cache_resource
 def cargar_todo():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -193,16 +181,13 @@ def cargar_todo():
 
 modelo_gen, scaler_gen, cols_gen, modelos_esp, cols_esp = cargar_todo()
 
-# =========================
-# SESSION STATE
-# =========================
+
 if "diagnostico_general_listo" not in st.session_state:
     st.session_state.diagnostico_general_listo = False
 
 if "prob_general" not in st.session_state:
     st.session_state.prob_general = None
 
-# Ranking específico persistente
 if "ranking_especifico" not in st.session_state:
     st.session_state.ranking_especifico = []
 if "ranking_listo" not in st.session_state:
@@ -215,9 +200,8 @@ if "mensajes_chat" not in st.session_state:
 if "chat_iniciado_con_contexto" not in st.session_state:
     st.session_state.chat_iniciado_con_contexto = False
 
-# =========================
+
 # SIDEBAR
-# =========================
 st.sidebar.header("Perfil Básico")
 st.sidebar.info("Ingrese sus datos generales para iniciar la predicción.")
 
@@ -237,15 +221,11 @@ alcohol_input = st.sidebar.slider("Consumo Alcohol (Tragos/Semana)", 0, 20, 2)
 smoking_val_gen = 1 if is_smoker else 0
 smoking_val_esp = 1 if is_smoker else 0
 
-# =========================
-# LAYOUT: IZQ (APP) / DER (CHAT)
-# =========================
+
 col_main, col_chat = st.columns([0.70, 0.30], gap="large")
 
 
-# =========================
 # COLUMNA PRINCIPAL (APP)
-# =========================
 with col_main:
     st.title("Sistema de Predicción Oncológico")
 
@@ -265,7 +245,6 @@ with col_main:
                 "CancerHistory": [1 if cancer_history else 0],
             })
 
-            # Features extra
             input_gen["Age_Smoking"] = input_gen["Age"] * input_gen["Smoking"]
             input_gen["BMI_Activity"] = input_gen["BMI"] * input_gen["PhysicalActivity"]
             input_gen["Genetic_Smoking"] = input_gen["GeneticRisk"] * input_gen["Smoking"]
@@ -318,7 +297,6 @@ with col_main:
 
         st.markdown("---")
 
-        # Iconos
         base_dir = os.path.dirname(os.path.abspath(__file__))
         img_pulmon = obtener_imagen_base64(os.path.join(base_dir, "resources/lungs.png"))
         img_gastrico = obtener_imagen_base64(os.path.join(base_dir, "resources/estomago.png"))
@@ -329,7 +307,6 @@ with col_main:
         st.markdown("2. Análisis Específico (Opcional)")
         st.info("Complete los síntomas para identificar el tipo de riesgo más probable.")
 
-        # Defaults para evitar NameError
         s_allergy = s_wheezing = s_cough = s_chest = s_fatigue = False
         g_pylori = s_swallow = s_chronic = s_anxiety = False
         c_partners, c_first_sex, c_pregnancies, c_hormonal = 2, 18, 0, False
@@ -547,7 +524,6 @@ with col_main:
             st.session_state.ranking_especifico = ranking
             st.session_state.ranking_listo = True
 
-        # Mostrar ranking persistente
         if st.session_state.ranking_listo and st.session_state.ranking_especifico:
             st.write("Ranking de Probabilidades según sus síntomas:")
             for nombre, pr in st.session_state.ranking_especifico:
@@ -561,26 +537,20 @@ with col_main:
                 """, unsafe_allow_html=True)
 
 
-# =========================
 # COLUMNA DERECHA (CHAT)
-# =========================
 with col_chat:
     st.markdown("### Asistente IA")
 
-    # 1. Asegurar que la sesión de chat viva en el session_state
     if "chat_session" not in st.session_state:
-        # Creamos la sesión usando el cliente cacheado
         st.session_state.chat_session = client.chats.create(
             model="gemini-2.5-flash",
             config=configAgent
         )
         st.session_state.chat_iniciado_con_contexto = False
 
-    # 2. Enviar resultados (solo una vez)
     if st.session_state.diagnostico_general_listo and st.session_state.ranking_listo:
         if not st.session_state.chat_iniciado_con_contexto:
             
-            # Construcción del ranking para el prompt
             ranking_texto = "".join([f"- {n}: {p:.1%}\n" for n, p in st.session_state.ranking_especifico])
             
             user_payload = {
@@ -597,33 +567,27 @@ with col_chat:
             )
 
             try:
-                # Usamos la sesión guardada en state
                 response_gemini = st.session_state.chat_session.send_message(ctx_mensaje)
                 st.session_state.mensajes_chat = [{"role": "assistant", "content": response_gemini.text}]
                 st.session_state.chat_iniciado_con_contexto = True
-                # No es estrictamente necesario el rerun aquí, 
-                # Streamlit pintará el cambio en la siguiente línea del historial.
+
             except Exception as e:
                 st.error(f"Error al conectar con la IA: {e}")
 
-    # 3. Mostrar historial
     chat_box = st.container(border=True, height=600)
     with chat_box:
         for msg in st.session_state.mensajes_chat:
             with st.chat_message(msg["role"]):
                 st.write(msg["content"])
 
-    # 4. Input de usuario
     prompt = st.chat_input("Escribe tu duda...", key="chat_input_principal")
 
     if prompt:
-        # Guardar mensaje de usuario
         st.session_state.mensajes_chat.append({"role": "user", "content": prompt})
         
         try:
-            # Enviar a la sesión persistente
             respuesta = st.session_state.chat_session.send_message(prompt)
             st.session_state.mensajes_chat.append({"role": "assistant", "content": respuesta.text})
-            st.rerun() # Rerun solo para actualizar la UI con la nueva respuesta
+            st.rerun()
         except Exception as e:
             st.error(f"Error en la comunicación: {e}")
