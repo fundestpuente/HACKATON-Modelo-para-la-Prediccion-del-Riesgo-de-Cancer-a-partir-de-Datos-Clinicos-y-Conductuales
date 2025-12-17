@@ -1,8 +1,11 @@
-streamlit
-pandas
 numpy
-joblib
+pandas
 seaborn
 matplotlib
-shap
 scikit-learn
+shap
+joblib
+imbalanced-learn
+streamlit
+google-genai
+python-dotenv

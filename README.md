@@ -8,13 +8,10 @@
 - Anthony Baes 
 
 ## 📌 Descripción del proyecto
-Este proyecto desarrolla un modelo de Machine Learning capaz de predecir el riesgo de cáncer utilizando variables clínicas y conductuales. Incluye análisis exploratorio, preprocesamiento, entrenamiento de modelos, comparación entre algoritmos y construcción de un pipeline para predicciones automatizadas.
+Este proyecto desarrolla un sistema inteligente capaz de predecir el riesgo de cáncer utilizando variables clínicas y conductuales. A diferencia de enfoques genéricos, esta solución implementa modelos especializados por tipo de órgano y un asistente conversacional basado en inteligencia artificial generativa para la interpretación de resultados.
 
 ## ❗ Problemática
-El cáncer continúa siendo una de las principales causas de mortalidad a nivel mundial. Su detección temprana es crítica, pero en muchos casos los síntomas son silenciosos o inespecíficos, lo que dificulta una identificación oportuna.
-Aunque se conocen factores de riesgo como el tabaquismo, altos niveles de IMC, sedentarismo o antecedentes familiares, su relación combinada es compleja y requiere herramientas avanzadas para ser analizada.
-
-Los sistemas de salud carecen de soluciones automatizadas capaces de evaluar el riesgo de forma rápida y escalable. Este proyecto propone resolver esta necesidad mediante un modelo de aprendizaje automático entrenado específicamente para reconocer patrones asociados al desarrollo de cáncer.
+El cáncer es una de las principales causas de mortalidad mundial. Su detección temprana es crítica, pero la relación entre factores como el tabaquismo, IMC, sedentarismo y antecedentes familiares es compleja. Los sistemas de salud necesitan herramientas automatizadas, escalables y explicables que ayuden a identificar patrones de riesgo antes de que los síntomas sean críticos.
 
 ## 🎯 Objetivos del Proyecto
 ### Objetivo general
@@ -23,36 +20,36 @@ Desarrollar un modelo de machine learning capaz de predecir el riesgo de cáncer
 
 ### Objetivos específicos
 
-- Integrar, limpiar y estandarizar las variables del dataset.
+- Entrenar modelos de clasificación específicos para distintos tipos de cáncer (Cervical, Gástrico, Mama, Próstata, Pulmón).
+- Integrar un Chatbot de IA Generativa para mejorar la comunicación médico-paciente.
+- Evaluar los modelos mediante métricas de precisión (Accuracy, Recall, AUC-ROC).
+- Diseñar una interfaz interactiva en Streamlit para facilitar el uso del sistema.
 
-- Realizar análisis exploratorio para comprender patrones y correlaciones entre factores de riesgo.
-
-- Entrenar y comparar modelos supervisados de clasificación binaria para predecir la variable Diagnosis.
-
-- Evaluar los modelos mediante métricas como accuracy, recall, precision, F1-score y AUC-ROC.
-
-- Analizar la importancia e interpretabilidad de las variables más influyentes.
-
-- Diseñar un pipeline automatizado que permita predecir riesgo en nuevos pacientes en tiempo real.
+## 🚀 Funcionalidades Destacadas
+- Modelos por Órgano: Implementación de clasificadores independientes optimizados para las características únicas de cada patología.
+- Chatbot Google AI (Gemini): Asistente virtual que explica los resultados obtenidos, resuelve dudas sobre factores de riesgo y ofrece recomendaciones preventivas personalizadas.
 
 ## 🎯 Público Objetivo
 - Profesionales de la salud: médicos generales, oncólogos, nutricionistas.
-
 - Instituciones médicas y de salud pública.
-
 - Investigadores biomédicos y científicos de datos.
-
 - Desarrolladores de aplicaciones médicas y plataformas de bienestar.
-
 - Personas interesadas en conocer y monitorear su riesgo personal mediante modelos predictivos.
 
 ## ⚙️ Instrucciones de Instalación y Ejecución
 
+### Configuración de Google AI
+1. Obtén tu clave en [Google AI Studio](https://aistudio.google.com/).
+2. Crea un archivo `.env` en la raíz del proyecto.
+3. Agrega la siguiente línea a tu archivo `.env`:
+```bash
+API_KEY=tu_clave_aqui
+```
 
 1. **Clonar el repositorio**
    ```bash
    git clone https://github.com/fundestpuente/SIC-Modelo-para-la-Prediccion-del-Riesgo-de-Cancer-a-partir-de-Datos-Clinicos-y-Conductuales.git
-   cd "SIC-Modelo-para-la-Prediccion-del-Riesgo-de-Cancer-a-partir-de-Datos-Clinicos-y-Conductuales"
+   cd "https://github.com/fundestpuente/HACKATON-Modelo-para-la-Prediccion-del-Riesgo-de-Cancer-a-partir-de-Datos-Clinicos-y-Conductuales.git"
    ```
 
 2. **Actualizar pip e instalar dependencias**
@@ -66,22 +63,35 @@ Desarrollar un modelo de machine learning capaz de predecir el riesgo de cáncer
     streamlit run src/app.py
     ```
 
-## 📂 Estructura del Código
+## 📂 Estructura del Proyecto
 
-- `data/`: Carpeta para almacenar los datasets.
-- `notebooks/`: Jupyter notebooks para análisis exploratorio.
-- `src/`: Código fuente del proyecto.
-  - `preprocessing.ipynb`: Funciones de preprocesamiento de datos y entrenamiento del modelo.
-  - `interpretation.ipynb`: Notebook para análisis de interpretabilidad del modelo.
-  - `app.py`: Interfaz de usuario con Streamlit.
-
+```text
+.
+├── 📂 data/                    # Datasets y archivos de datos crudos
+├── 📂 notebooks/               # Jupyter Notebooks de experimentación
+│   ├── 📂 pkl/                 # Modelos serializados por órgano
+│   │   ├── 📄 columnas_*.pkl   # Variables por categoría
+│   │   └── 📄 modelo_*_final.pkl
+│   ├── 📓 01_EDA.ipynb         # Análisis Exploratorio de Datos
+│   └── 📓 testNewData.ipynb    # Pruebas de nuevos datos y modelado
+├── 📂 src/                     # Código fuente de la aplicación
+│   ├── 📂 resources/           # Imágenes del sistema
+│   ├── 🐍 app.py               # Aplicación principal (Streamlit)
+│   ├── 📄 scaler_final.pkl
+│   ├── 📄 modelo_cancer_final.pkl
+│   ├── 🖼️ grafico_interpretacion_shap.png
+│   └── 📓 preprocessing.ipynb  # Preparación de datos y modelado
+├── ⚙️ .env                     # Variables de entorno
+├── 🚫 .gitignore               # Archivos excluidos de Git
+├── 📖 README.md                # Documentación del proyecto
+└── 📋 requirements.txt         # Librerías y dependencias
+```
 
 ## ✅ Herramientas Implementadas
 
-- **Python 3.9+**
-- **Pandas**
-- **NumPy**
-- **Scikit-learn**
-- **Matplotlib**
-- **Seaborn**
-- **Streamlit**
+- **Lenguaje**: Python 3.9+
+- **IA Generativa**: Google AI SDK (Gemini Pro)
+- **ML Frameworks**: Scikit-learn, Imbalanced-learn (SMOTE)
+- **Análisis**: Pandas, NumPy
+- **Visualización**: Matplotlib, Seaborn, SHAP
+- **Despliegue**: Streamlit
