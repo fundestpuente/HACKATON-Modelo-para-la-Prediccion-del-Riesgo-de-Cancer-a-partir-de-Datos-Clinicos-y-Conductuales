@@ -236,8 +236,17 @@ if st.session_state.diagnostico_general_listo:
                 Autoexamen de mama
             </h3>
             """, unsafe_allow_html=True)
+            
             m_lump = st.checkbox("¿Ha detectado algún bulto o masa?")
-            m_pain = st.checkbox("¿Siente dolor o cambios en la piel?")
+            
+            m_pain_lump = False
+            m_pain_general = False
+            
+            if m_lump:
+                st.info("Un bulto indoloro (que no duele) suele ser más sospechoso.")
+                m_pain_lump = st.checkbox("¿El bulto es doloroso al tacto?")
+            else:
+                m_pain_general = st.checkbox("¿Siente dolor o cambios en la piel?")
             
         else: # Hombre
             st.markdown(f"""
@@ -256,15 +265,15 @@ if st.session_state.diagnostico_general_listo:
 
         # PULMÓN
         if "pulmon" in modelos_esp:
-            try:
+            try:          
                 df_p = pd.DataFrame({
                     'GENDER': [1 if gender == 0 else 0],
                     'AGE': [age],
                     'SMOKING': [smoking_val_esp],
                     'YELLOW_FINGERS': [0], 
-                    'ANXIETY': [1 if s_anxiety else 0],
+                    'ANXIETY': [0],
                     'PEER_PRESSURE': [0],
-                    'CHRONIC DISEASE': [1 if s_chronic else 0],
+                    'CHRONIC DISEASE': [0],
                     'FATIGUE ': [1 if s_fatigue else 0],
                     'ALLERGY ': [1 if s_allergy else 0],
                     'WHEEZING': [1 if s_wheezing else 0],
@@ -274,24 +283,41 @@ if st.session_state.diagnostico_general_listo:
                     'SWALLOWING DIFFICULTY': [1 if s_swallow else 0],
                     'CHEST PAIN': [1 if s_chest else 0]
                 })
+
                 df_p = df_p[cols_esp["pulmon"]]
                 prob = modelos_esp["pulmon"].predict_proba(df_p)[0][1]
                 ranking.append(("Pulmón", prob))
-            except: pass
+
+            except Exception as e:
+                st.error(f"Error Pulmón: {e}")
+
 
         # GÁSTRICO
         if "gastrico" in modelos_esp:
             try:
                 df_g = pd.DataFrame(0.0, index=[0], columns=cols_esp["gastrico"])
+                
                 df_g['age'] = age
                 df_g['helicobacter_pylori_infection'] = 1 if g_pylori else 0
                 df_g['alcohol_consumption'] = 1 if alcohol_input > 2 else 0
                 df_g['smoking_habits'] = 1 if smoking_val_esp == 1 else 0
-                prob = modelos_esp["gastrico"].predict_proba(df_g)[0][1]
-                ranking.append(("Gástrico", prob))
-            except: pass
+                
+                if 'gender_Male' in df_g.columns:
+                    df_g = df_g.drop(columns=['gender_Male'])
 
-        # MODELOS ESPECIALES
+                prob = modelos_esp["gastrico"].predict_proba(df_g)[0][1]
+                
+                if g_pylori:
+                    prob = max(prob, 0.65)
+                if s_swallow:
+                    prob = min(prob + 0.10, 0.95)
+
+                ranking.append(("Gástrico", prob))
+                
+            except Exception as e:
+                st.error(f"Error Gástrico: {e}")
+
+        # GINECOLÓGICO
         if gender == 1:
             if "cervical" in modelos_esp:
                 try:
@@ -305,45 +331,69 @@ if st.session_state.diagnostico_general_listo:
                     df_c['STDs'] = 1 if c_partners > 5 else 0 
                     prob = modelos_esp["cervical"].predict_proba(df_c)[0][1]
                     ranking.append(("Cervical", prob))
-                except: pass
+                except Exception as e: st.error(f"Error Cervical: {e}")
             
+            # MAMA
             if "mama" in modelos_esp:
                 try:
                     df_m = pd.DataFrame(0.0, index=[0], columns=cols_esp["mama"])
-                    
+                    val_radius = 11.0
+                    val_area = 400.0
+                    val_perimeter = 75.0
+                    val_concave = 0.01
+
                     if m_lump:
-                        val_radius = 18.0
-                        val_texture = 25.0
-                    elif m_pain:
-                        val_radius = 15.0
-                        val_texture = 22.0
-                    else:
-                        val_radius = 11.0
-                        val_texture = 14.0
+                        if m_pain_lump:
+                            val_radius = 16.0 
+                            val_area = 800.0
+                            val_perimeter = 100.0
+                            val_concave = 0.08
+                        else:
+                            val_radius = 20.0 
+                            val_area = 1200.0 
+                            val_perimeter = 130.0
+                            val_concave = 0.18 
+                    
+                    elif m_pain_general:
+                        val_radius = 13.0
+                        val_area = 550.0
+                        val_perimeter = 85.0
                         
                     df_m['radius_mean'] = val_radius
-                    df_m['texture_mean'] = val_texture
-                    df_m['area_mean'] = (val_radius ** 2) * 3.1416
-                    df_m['perimeter_mean'] = val_radius * 6.28
+                    df_m['texture_mean'] = 20.0 
                     
+                    if 'area_mean' in df_m.columns: df_m['area_mean'] = val_area
+                    if 'perimeter_mean' in df_m.columns: df_m['perimeter_mean'] = val_perimeter
+                    if 'concave points_mean' in df_m.columns: df_m['concave points_mean'] = val_concave
+
+                    if 'area_worst' in df_m.columns: df_m['area_worst'] = val_area * 1.3
+                    if 'perimeter_worst' in df_m.columns: df_m['perimeter_worst'] = val_perimeter * 1.2
+                    if 'radius_worst' in df_m.columns: df_m['radius_worst'] = val_radius * 1.2
+
                     prob = modelos_esp["mama"].predict_proba(df_m)[0][1]
+                    
+                    if m_lump:
+                        if not m_pain_lump:
+                            prob = max(prob, 0.92)
+                        else:
+                            prob = max(prob, 0.80)
+                    
                     ranking.append(("Mama", prob))
-                except: pass
+                except Exception as e: st.error(f"Error Mama: {e}")
+
+        # PROSTATA
         else:
             if "prostata" in modelos_esp:
                 try:
                     df_pr = pd.DataFrame(0.0, index=[0], columns=cols_esp["prostata"])
-                    
                     if p_urine or p_night:
-                        val_radius = 19.0
-                        val_area = 900.0
+                        val_r, val_a = 19.0, 900.0
                     else:
-                        val_radius = 10.0
-                        val_area = 400.0
+                        val_r, val_a = 10.0, 400.0
                         
-                    df_pr['radius'] = val_radius
-                    df_pr['perimeter'] = val_radius * 6.28
-                    df_pr['area'] = val_area
+                    df_pr['radius'] = val_r
+                    df_pr['perimeter'] = val_r * 6.28
+                    df_pr['area'] = val_a
                     
                     if hasattr(modelos_esp["prostata"], "predict_proba"):
                         prob = modelos_esp["prostata"].predict_proba(df_pr)[0][1]
@@ -351,9 +401,10 @@ if st.session_state.diagnostico_general_listo:
                         pred = modelos_esp["prostata"].predict(df_pr)[0]
                         prob = 0.95 if pred == 1 else 0.05
                     ranking.append(("Próstata", prob))
-                except: pass
+                except Exception as e: st.error(f"Error Próstata: {e}")
 
 
+        # MOSTRAR RESULTADOS
         ranking.sort(key=lambda x: x[1], reverse=True)
         
         for nombre, prob in ranking:
