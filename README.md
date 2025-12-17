@@ -38,14 +38,6 @@ Desarrollar un modelo de machine learning capaz de predecir el riesgo de cáncer
 
 ## ⚙️ Instrucciones de Instalación y Ejecución
 
-### Configuración de Google AI
-1. Obtén tu clave en [Google AI Studio](https://aistudio.google.com/).
-2. Crea un archivo `.env` en la raíz del proyecto.
-3. Agrega la siguiente línea a tu archivo `.env`:
-```bash
-API_KEY=tu_clave_aqui
-```
-
 1. **Clonar el repositorio**
    ```bash
    git clone https://github.com/fundestpuente/SIC-Modelo-para-la-Prediccion-del-Riesgo-de-Cancer-a-partir-de-Datos-Clinicos-y-Conductuales.git
@@ -62,6 +54,14 @@ API_KEY=tu_clave_aqui
    ```bash
     streamlit run src/app.py
     ```
+   
+### Configuración de Google AI
+1. Obtén tu clave en [Google AI Studio](https://aistudio.google.com/).
+2. Crea un archivo `.env` en la raíz del proyecto.
+3. Agrega la siguiente línea a tu archivo `.env`:
+```bash
+API_KEY=tu_clave_aqui
+```
 
 ## 📂 Estructura del Proyecto
 
