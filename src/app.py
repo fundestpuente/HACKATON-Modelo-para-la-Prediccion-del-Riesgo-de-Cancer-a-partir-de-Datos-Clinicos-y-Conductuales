@@ -218,7 +218,7 @@ if "chat_iniciado_con_contexto" not in st.session_state:
 # =========================
 # SIDEBAR
 # =========================
-st.sidebar.header("👤 Perfil Básico")
+st.sidebar.header("Perfil Básico")
 st.sidebar.info("Ingrese sus datos generales para iniciar la predicción.")
 
 gender = st.sidebar.radio("Género", [0, 1], format_func=lambda x: "Masculino" if x == 0 else "Femenino")
@@ -247,7 +247,7 @@ col_main, col_chat = st.columns([0.70, 0.30], gap="large")
 # COLUMNA PRINCIPAL (APP)
 # =========================
 with col_main:
-    st.title("🏥 Sistema de Predicción Oncológico")
+    st.title("Sistema de Predicción Oncológico")
 
     st.markdown("1. Evaluación de Riesgo General")
     st.write("Analizaremos su perfil base para detectar indicadores de riesgo.")
@@ -565,7 +565,7 @@ with col_main:
 # COLUMNA DERECHA (CHAT)
 # =========================
 with col_chat:
-    st.markdown("### 🤖 Asistente IA")
+    st.markdown("### Asistente IA")
 
     # 1. Asegurar que la sesión de chat viva en el session_state
     if "chat_session" not in st.session_state:
