@@ -416,3 +416,127 @@ if st.session_state.diagnostico_general_listo:
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
+# ==============================================================================
+# 🗨️ CHATBOT FLOTANTE (VERSIÓN DERECHA)
+# ==============================================================================
+
+# 1. ESTADO DEL CHAT
+if "mensajes_chat" not in st.session_state:
+    st.session_state.mensajes_chat = [
+        {"role": "assistant", "content": "👋 Hola. Soy tu asistente médico virtual."}
+    ]
+
+# 2. CSS PARA POSICIONAR A LA DERECHA
+st.markdown("""
+    <style>
+    /* Selecciona EL ÚLTIMO expander de la página y lo mueve a la derecha */
+    div[data-testid="stExpander"]:last-of-type {
+        position: fixed;
+        bottom: 20px;
+        right: 20px; /* <--- CAMBIO AQUÍ: Ahora está a la derecha */
+        width: 350px;
+        max-height: 500px;
+        z-index: 99999;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0px 6px 20px rgba(0,0,0,0.25);
+        border: 1px solid #e0e0e0;
+        margin-bottom: 0 !important;
+    }
+
+    /* Estilo de la cabecera del expander (La barra azul) */
+    div[data-testid="stExpander"]:last-of-type summary {
+        background-color: #2196F3;
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+        font-weight: bold;
+    }
+    
+    div[data-testid="stExpander"]:last-of-type summary:hover {
+        background-color: #1976D2; /* Efecto hover un poco más oscuro */
+    }
+    
+    /* Icono de la flecha en blanco */
+    div[data-testid="stExpander"]:last-of-type summary svg {
+        fill: white !important;
+        color: white !important;
+    }
+
+    /* Cuerpo del contenido (Scroll) */
+    div[data-testid="stExpander"]:last-of-type div[data-testid="stExpanderDetails"] {
+        max-height: 350px;
+        overflow-y: auto;
+        padding: 15px;
+        background-color: #f7f9fa;
+    }
+    
+    /* Burbujas de chat */
+    .chat-bubble {
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+    .user-bubble {
+        background-color: #e3f2fd;
+        color: #1565c0;
+        text-align: right;
+        border-bottom-right-radius: 2px;
+        margin-left: 20%;
+    }
+    .bot-bubble {
+        background-color: #ffffff;
+        color: #333;
+        text-align: left;
+        border-bottom-left-radius: 2px;
+        margin-right: 20%;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 3. CONSTRUCCIÓN DEL CHAT
+with st.expander("💬 Asistente IA (Click para abrir)", expanded=False):
+    
+    # A) Historial
+    for msg in st.session_state.mensajes_chat:
+        clase = "user-bubble" if msg["role"] == "user" else "bot-bubble"
+        icono = "👤" if msg["role"] == "user" else "🤖"
+        st.markdown(f"""
+            <div class="chat-bubble {clase}">
+                <b>{icono}</b> {msg['content']}
+            </div>
+        """, unsafe_allow_html=True)
+
+    # B) Input
+    st.markdown("---")
+    with st.form(key="chat_form", clear_on_submit=True):
+        col_input, col_btn = st.columns([4, 1])
+        
+        with col_input:
+            user_input = st.text_input("Escribe...", key="input_usuario", label_visibility="collapsed", placeholder="Escribe aquí...")
+        
+        with col_btn:
+            submit_btn = st.form_submit_button("➤")
+
+        if submit_btn and user_input:
+            st.session_state.mensajes_chat.append({"role": "user", "content": user_input})
+            
+            # Lógica simple de respuesta
+            msg_lower = user_input.lower()
+            respuesta = "He registrado esa información. ¿Tienes alguna otra duda?"
+            
+            riesgo_txt = f"{prob:.1%}" if 'prob' in locals() else "pendiente"
+            
+            if "hola" in msg_lower:
+                respuesta = f"¡Hola! Veo que tu riesgo calculado es {riesgo_txt}. ¿En qué te ayudo?"
+            elif "riesgo" in msg_lower:
+                respuesta = "El riesgo mostrado es estadístico. Te recomiendo acudir a un especialista para validar."
+            elif "dolor" in msg_lower:
+                respuesta = "¿El dolor es agudo o crónico? Eso es importante para el diagnóstico."
+
+            st.session_state.mensajes_chat.append({"role": "assistant", "content": respuesta})
+            st.rerun()
