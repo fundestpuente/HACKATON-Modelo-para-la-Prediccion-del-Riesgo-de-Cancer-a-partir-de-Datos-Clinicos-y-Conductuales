@@ -417,126 +417,91 @@ if st.session_state.diagnostico_general_listo:
             </div>
             """, unsafe_allow_html=True)
 
-# ==============================================================================
-# 🗨️ CHATBOT FLOTANTE (VERSIÓN DERECHA)
+# 🗨️ CHATBOT FLOTANTE
 # ==============================================================================
 
-# 1. ESTADO DEL CHAT
-if "mensajes_chat" not in st.session_state:
-    st.session_state.mensajes_chat = [
-        {"role": "assistant", "content": "👋 Hola. Soy tu asistente médico virtual."}
-    ]
-
-# 2. CSS PARA POSICIONAR A LA DERECHA
+# 1. CSS AGRESIVO PARA FORZAR EL CÍRCULO
 st.markdown("""
     <style>
-    /* Selecciona EL ÚLTIMO expander de la página y lo mueve a la derecha */
-    div[data-testid="stExpander"]:last-of-type {
+    /* 1. Posicionar el contenedor del popover en la esquina */
+    [data-testid="stPopover"] {
         position: fixed;
-        bottom: 20px;
-        right: 20px; /* <--- CAMBIO AQUÍ: Ahora está a la derecha */
-        width: 350px;
-        max-height: 500px;
+        bottom: 30px;
+        right: 30px;
         z-index: 99999;
-        background-color: white;
-        border-radius: 12px;
-        box-shadow: 0px 6px 20px rgba(0,0,0,0.25);
-        border: 1px solid #e0e0e0;
-        margin-bottom: 0 !important;
+        width: auto !important; /* Evita que se estire a lo largo */
     }
 
-    /* Estilo de la cabecera del expander (La barra azul) */
-    div[data-testid="stExpander"]:last-of-type summary {
+    /* 2. Estilizar el botón para que sea un círculo perfecto */
+    [data-testid="stPopover"] > button {
+        width: 60px !important;
+        height: 60px !important;
+        min-width: 60px !important; /* Asegura que no se aplaste */
+        border-radius: 50% !important;
         background-color: #2196F3;
         color: white;
-        border-radius: 10px;
-        padding: 15px;
-        font-weight: bold;
-    }
-    
-    div[data-testid="stExpander"]:last-of-type summary:hover {
-        background-color: #1976D2; /* Efecto hover un poco más oscuro */
-    }
-    
-    /* Icono de la flecha en blanco */
-    div[data-testid="stExpander"]:last-of-type summary svg {
-        fill: white !important;
-        color: white !important;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
     }
 
-    /* Cuerpo del contenido (Scroll) */
-    div[data-testid="stExpander"]:last-of-type div[data-testid="stExpanderDetails"] {
-        max-height: 350px;
-        overflow-y: auto;
-        padding: 15px;
-        background-color: #f7f9fa;
+    /* 3. Efecto Hover */
+    [data-testid="stPopover"] > button:hover {
+        background-color: #1976D2;
+        transform: scale(1.1);
+        transition: transform 0.2s;
     }
-    
-    /* Burbujas de chat */
-    .chat-bubble {
-        padding: 10px;
-        border-radius: 10px;
-        margin-bottom: 8px;
-        font-size: 0.9rem;
-        line-height: 1.4;
+
+    /* 4. TRUCO: Ocultar el texto "Chat" que escribimos en Python */
+    [data-testid="stPopover"] > button span, 
+    [data-testid="stPopover"] > button p {
+        display: none !important;
     }
-    .user-bubble {
-        background-color: #e3f2fd;
-        color: #1565c0;
-        text-align: right;
-        border-bottom-right-radius: 2px;
-        margin-left: 20%;
-    }
-    .bot-bubble {
-        background-color: #ffffff;
-        color: #333;
-        text-align: left;
-        border-bottom-left-radius: 2px;
-        margin-right: 20%;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+
+    /* 5. Poner nuestro propio icono grande */
+    [data-testid="stPopover"] > button::after {
+        content: "💬"; 
+        font-size: 28px;
+        margin-top: -2px; /* Ajuste fino vertical */
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. CONSTRUCCIÓN DEL CHAT
-with st.expander("💬 Asistente IA (Click para abrir)", expanded=False):
+# 2. ESTADO DEL CHAT
+if "mensajes_chat" not in st.session_state:
+    st.session_state.mensajes_chat = [
+        {"role": "assistant", "content": "👋 Hola. Soy tu asistente médico virtual. ¿Tienes dudas?"}
+    ]
+
+# 3. COMPONENTE (Importante: Ponemos texto vacío o un punto para que el CSS haga el resto)
+chat_popover = st.popover("Chatbot 🤖") 
+
+with chat_popover:
+    st.markdown("### 🤖 Asistente IA")
+    st.caption("Pregunta sobre tus resultados...")
     
-    # A) Historial
-    for msg in st.session_state.mensajes_chat:
-        clase = "user-bubble" if msg["role"] == "user" else "bot-bubble"
-        icono = "👤" if msg["role"] == "user" else "🤖"
-        st.markdown(f"""
-            <div class="chat-bubble {clase}">
-                <b>{icono}</b> {msg['content']}
-            </div>
-        """, unsafe_allow_html=True)
-
-    # B) Input
-    st.markdown("---")
-    with st.form(key="chat_form", clear_on_submit=True):
-        col_input, col_btn = st.columns([4, 1])
+    # Contenedor de mensajes
+    chat_container = st.container(height=300)
+    with chat_container:
+        for msg in st.session_state.mensajes_chat:
+            with st.chat_message(msg["role"]):
+                st.write(msg["content"])
+    
+    # Input
+    prompt = st.chat_input("Escribe tu duda...", key="popover_chat_input")
+    
+    if prompt:
+        st.session_state.mensajes_chat.append({"role": "user", "content": prompt})
+        with chat_container:
+            st.chat_message("user").write(prompt)
+            
+        # Respuesta simple
+        riesgo = f"{prob:.1%}" if 'prob' in locals() else "pendiente"
+        resp = f"Entendido. Tu riesgo es {riesgo}. Te recomiendo consultar a un médico."
         
-        with col_input:
-            user_input = st.text_input("Escribe...", key="input_usuario", label_visibility="collapsed", placeholder="Escribe aquí...")
-        
-        with col_btn:
-            submit_btn = st.form_submit_button("➤")
-
-        if submit_btn and user_input:
-            st.session_state.mensajes_chat.append({"role": "user", "content": user_input})
-            
-            # Lógica simple de respuesta
-            msg_lower = user_input.lower()
-            respuesta = "He registrado esa información. ¿Tienes alguna otra duda?"
-            
-            riesgo_txt = f"{prob:.1%}" if 'prob' in locals() else "pendiente"
-            
-            if "hola" in msg_lower:
-                respuesta = f"¡Hola! Veo que tu riesgo calculado es {riesgo_txt}. ¿En qué te ayudo?"
-            elif "riesgo" in msg_lower:
-                respuesta = "El riesgo mostrado es estadístico. Te recomiendo acudir a un especialista para validar."
-            elif "dolor" in msg_lower:
-                respuesta = "¿El dolor es agudo o crónico? Eso es importante para el diagnóstico."
-
-            st.session_state.mensajes_chat.append({"role": "assistant", "content": respuesta})
-            st.rerun()
+        st.session_state.mensajes_chat.append({"role": "assistant", "content": resp})
+        with chat_container:
+            st.chat_message("assistant").write(resp)
